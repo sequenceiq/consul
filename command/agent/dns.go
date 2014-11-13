@@ -173,7 +173,6 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
 		network = "tcp"
 	}
-	d.logger.Printf("[TRACE] PTR network: %#v", network)
 
 	// Setup the message response
 	m := new(dns.Msg)
@@ -190,16 +189,42 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
-	d.logger.Printf("[TRACE] PTR qName: %#v   [dc:%s]", qName, datacenter)
+	d.logger.Printf("[TRACE] PTR qName: %#v   [dc:%s, network:%s]", qName, datacenter, network)
 	qName = strings.TrimSuffix(qName, ".in-addr.arpa")
 	labels := dns.SplitDomainName(qName)
-	d.logger.Printf("[TRACE] PTR labels: %#v", labels)
-	// node := strings.Join(labels[:], ".")
-	// d.nodeLookup(network, datacenter, node, req, m)
 
-	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
-	txt := &dns.TXT{header, []string{"ok PTR"}}
-	m.Answer = append(m.Answer, txt)
+	parts := []string{labels[3], labels[2], labels[1], labels[0]}
+	ip := strings.Join(parts, ".")
+
+	d.logger.Printf("[DEBUG] reverse lookup for : %#v", ip)
+
+	node := "hack"
+	for _, n := range d.agent.WANMembers() {
+		d.logger.Printf("[DEBUG] checking node   name:%#v  addr:%#v", n.Name, n.Addr)
+	}
+
+	// args := structs.DCSpecificRequest{
+	// 	Datacenter:   datacenter,
+	// 	QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+	// }
+	// var out structs.IndexedNodes
+	//
+	// node := "hack"
+	// if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
+	// 	for n := range out.Nodes {
+	// 		d.logger.Printf("[DEBUG] checking node : %#v [%T]", n, n)
+	// 		// if n.Address == ip {
+	// 		// 	fmt.Println("!!!!! BINGO !!!!!")
+	// 		// 	node := n.Node
+	// 		// }
+	// 	}
+	// } else {
+	// 	d.logger.Printf("[WARN] checking node : %#v", err)
+	// }
+
+	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0}
+	ptr := &dns.PTR{header, node + ".node.consul."}
+	m.Answer = append(m.Answer, ptr)
 
 	// Write out the complete response
 	if err := resp.WriteMsg(m); err != nil {
