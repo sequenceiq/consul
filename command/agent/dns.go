@@ -66,6 +66,9 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 		logger:       log.New(logOutput, "", log.LstdFlags),
 	}
 
+	// Register mux handler, for reverse lookup
+	mux.HandleFunc("in-addr.arpa.", srv.handlePtr)
+
 	// Register mux handlers, always handle "consul."
 	mux.HandleFunc(domain, srv.handleQuery)
 	if domain != consulDomain {
@@ -160,6 +163,48 @@ START:
 
 	// Return string
 	return addr.String(), nil
+}
+
+// handlePtr is used to handle "reverse" DNS queries
+func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
+	q := req.Question[0]
+	// Switch to TCP if the client is
+	network := "udp"
+	if _, ok := resp.RemoteAddr().(*net.TCPAddr); ok {
+		network = "tcp"
+	}
+	d.logger.Printf("[TRACE] PTR network: %#v", network)
+
+	// Setup the message response
+	m := new(dns.Msg)
+	m.SetReply(req)
+	m.Authoritative = true
+	m.RecursionAvailable = (len(d.recursors) > 0)
+
+	// Only add the SOA if requested
+	if req.Question[0].Qtype == dns.TypeSOA {
+		d.addSOA(d.domain, m)
+	}
+
+	datacenter := d.agent.config.Datacenter
+
+	// Get the QName without the domain suffix
+	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
+	d.logger.Printf("[TRACE] PTR qName: %#v   [dc:%s]", qName, datacenter)
+	qName = strings.TrimSuffix(qName, ".in-addr.arpa")
+	labels := dns.SplitDomainName(qName)
+	d.logger.Printf("[TRACE] PTR labels: %#v", labels)
+	// node := strings.Join(labels[:], ".")
+	// d.nodeLookup(network, datacenter, node, req, m)
+
+	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypeTXT, Class: dns.ClassINET, Ttl: 0}
+	txt := &dns.TXT{header, []string{"ok PTR"}}
+	m.Answer = append(m.Answer, txt)
+
+	// Write out the complete response
+	if err := resp.WriteMsg(m); err != nil {
+		d.logger.Printf("[WARN] dns: failed to respond: %v", err)
+	}
 }
 
 // handleQUery is used to handle DNS queries in the configured domain
