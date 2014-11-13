@@ -198,29 +198,30 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	d.logger.Printf("[DEBUG] reverse lookup for : %#v", ip)
 
-	node := "hack"
-	for _, n := range d.agent.WANMembers() {
-		d.logger.Printf("[DEBUG] checking node   name:%#v  addr:%#v", n.Name, n.Addr)
-	}
-
-	// args := structs.DCSpecificRequest{
-	// 	Datacenter:   datacenter,
-	// 	QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
-	// }
-	// var out structs.IndexedNodes
-	//
 	// node := "hack"
-	// if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err != nil {
-	// 	for n := range out.Nodes {
-	// 		d.logger.Printf("[DEBUG] checking node : %#v [%T]", n, n)
-	// 		// if n.Address == ip {
-	// 		// 	fmt.Println("!!!!! BINGO !!!!!")
-	// 		// 	node := n.Node
-	// 		// }
-	// 	}
-	// } else {
-	// 	d.logger.Printf("[WARN] checking node : %#v", err)
+	// for _, n := range d.agent.WANMembers() {
+	// 	d.logger.Printf("[DEBUG] checking node   name:%#v  addr:%#v", n.Name, n.Addr)
 	// }
+
+	args := structs.DCSpecificRequest{
+		Datacenter:   datacenter,
+		QueryOptions: structs.QueryOptions{AllowStale: d.config.AllowStale},
+	}
+	var out structs.IndexedNodes
+
+	node := "hack"
+	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
+		d.logger.Printf("[DEBUG] out: %#v", out)
+		for _, n := range out.Nodes {
+			d.logger.Printf("[DEBUG] checking node : %#v [%T]", n, n)
+			if n.Address == ip {
+				fmt.Println("!!!!! BINGO !!!!!")
+				node = n.Node
+			}
+		}
+	} else {
+		d.logger.Printf("[WARN] checking node : %#v", err)
+	}
 
 	header := dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0}
 	ptr := &dns.PTR{header, node + ".node.consul."}
