@@ -200,7 +200,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 			if arpa == qName {
 				ptr := &dns.PTR{
 					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
-					Ptr: n.Node + ".node.consul.",
+					Ptr: fmt.Sprintf("%s.node.%s.consul.", n.Node, datacenter),
 				}
 				m.Answer = append(m.Answer, ptr)
 				break

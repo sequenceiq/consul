@@ -341,7 +341,7 @@ func TestDNS_ReverseLookup(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "foo2.node.consul." {
+	if ptrRec.Ptr != "foo2.node.dc1.consul." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
@@ -383,7 +383,7 @@ func TestDNS_ReverseLookup_IPV6(t *testing.T) {
 	if !ok {
 		t.Fatalf("Bad: %#v", in.Answer[0])
 	}
-	if ptrRec.Ptr != "bar.node.consul." {
+	if ptrRec.Ptr != "bar.node.dc1.consul." {
 		t.Fatalf("Bad: %#v", ptrRec)
 	}
 }
