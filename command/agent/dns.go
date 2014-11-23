@@ -67,7 +67,7 @@ func NewDNSServer(agent *Agent, config *DNSConfig, logOutput io.Writer, domain s
 	}
 
 	// Register mux handler, for reverse lookup
-	mux.HandleFunc("in-addr.arpa.", srv.handlePtr)
+	mux.HandleFunc("arpa.", srv.handlePtr)
 
 	// Register mux handlers, always handle "consul."
 	mux.HandleFunc(domain, srv.handleQuery)
@@ -187,11 +187,6 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	// Get the QName without the domain suffix
 	qName := strings.ToLower(dns.Fqdn(req.Question[0].Name))
-	qName = strings.TrimSuffix(qName, ".in-addr.arpa")
-	labels := dns.SplitDomainName(qName)
-
-	parts := []string{labels[3], labels[2], labels[1], labels[0]}
-	ip := strings.Join(parts, ".")
 
 	args := structs.DCSpecificRequest{
 		Datacenter:   datacenter,
@@ -201,7 +196,8 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 
 	if err := d.agent.RPC("Catalog.ListNodes", &args, &out); err == nil {
 		for _, n := range out.Nodes {
-			if n.Address == ip {
+			arpa, _ := dns.ReverseAddr(n.Address)
+			if arpa == qName {
 				ptr := &dns.PTR{
 					Hdr: dns.RR_Header{Name: q.Name, Rrtype: dns.TypePTR, Class: dns.ClassINET, Ttl: 0},
 					Ptr: n.Node + ".node.consul.",
