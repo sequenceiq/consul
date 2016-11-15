@@ -11,18 +11,18 @@ resource "openstack_compute_keypair_v2" "consul_keypair" {
   public_key = "${var.public_key}"
 }
 
-resource "openstack_compute_floatingip_v2" "consul_ip" {
-  region = "${var.region}"
-  pool = "${lookup(var.pub_net_id, var.region)}"
-  count = "${var.servers}"
-}
+#resource "openstack_compute_floatingip_v2" "consul_ip" {
+#  region = "${var.region}"
+#  pool = "${lookup(var.pub_net_id, var.region)}"
+#  count = "${var.servers}"
+#}
 
 resource "openstack_compute_instance_v2" "consul_node" {
   name = "consul-node-${count.index}"
   region = "${var.region}"
   image_id = "${lookup(var.image, var.region)}"
   flavor_id = "${lookup(var.flavor, var.region)}"
-  floating_ip = "${element(openstack_compute_floatingip_v2.consul_ip.*.address,count.index)}"
+  #floating_ip = "${element(openstack_compute_floatingip_v2.consul_ip.*.address,count.index)}"
   key_pair = "consul-keypair"
   count = "${var.servers}"
 
