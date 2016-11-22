@@ -1,3 +1,7 @@
+variable "nodename_prefix" {
+  default = "consul-node"
+}
+
 variable "keypair_name" {
   default = "consul-keypair"
 }

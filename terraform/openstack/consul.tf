@@ -18,7 +18,7 @@ resource "openstack_compute_keypair_v2" "consul_keypair" {
 #}
 
 resource "openstack_compute_instance_v2" "consul_node" {
-  name = "consul-node-${count.index}"
+  name = "${var.nodename_prefix}-${count.index}"
   region = "${var.region}"
   image_id = "${lookup(var.image, var.region)}"
   flavor_id = "${lookup(var.flavor, var.region)}"
