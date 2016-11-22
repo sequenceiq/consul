@@ -10,7 +10,7 @@ variable "public_key" {}
 variable "user_login" {
     default = "stack"
 }
-variable "key_file_path" {}
+variable "private_key_path" {}
 
 variable "nb_of_nodes" {
     default = "4"

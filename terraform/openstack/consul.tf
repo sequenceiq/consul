@@ -28,7 +28,7 @@ resource "openstack_compute_instance_v2" "consul_node" {
 
     connection {
         user = "${var.user_login}"
-        key_file = "${var.key_file_path}"
+        private_key_path = "${var.private_key_path}"
         timeout = "1m"
     }
 
