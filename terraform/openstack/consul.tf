@@ -6,7 +6,7 @@ provider "openstack" {
 }
 
 resource "openstack_compute_keypair_v2" "consul_keypair" {
-  name = "consul-keypair"
+  name = "${var.keypair_name}"
   region = "${var.region}"
   public_key = "${var.public_key}"
 }
@@ -23,7 +23,7 @@ resource "openstack_compute_instance_v2" "consul_node" {
   image_id = "${lookup(var.image, var.region)}"
   flavor_id = "${lookup(var.flavor, var.region)}"
   #floating_ip = "${element(openstack_compute_floatingip_v2.consul_ip.*.address,count.index)}"
-  key_pair = "consul-keypair"
+  key_pair = "${var.keypair_name}"
   count = "${var.servers}"
 
     connection {

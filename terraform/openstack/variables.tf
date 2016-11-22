@@ -1,3 +1,7 @@
+variable "keypair_name" {
+  default = "consul-keypair"
+}
+
 variable "username" {}
 variable "password" {}
 variable "tenant_name" {}
